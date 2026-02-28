@@ -991,17 +991,22 @@
 
       // Auto-play music on first interaction (browsers block autoplay without interaction)
       const trigger = document.getElementById('audio-trigger');
+      let playAttempted = false;
       function attemptAutoplay() {
-        if (!musicPlaying) {
+        if (!musicPlaying && !playAttempted) {
+          playAttempted = true;
           music.play().then(() => {
             musicPlaying = true;
             btn.classList.add('playing');
             iconPlay.style.display = 'none';
             iconPause.style.display = '';
-          }).catch(() => { });
+            if (trigger) trigger.remove();
+            ['click', 'scroll', 'touchstart', 'touchend'].forEach(e => document.removeEventListener(e, attemptAutoplay));
+          }).catch(() => {
+            // Reset to try again on next interaction
+            playAttempted = false;
+          });
         }
-        if (trigger) trigger.remove();
-        ['click', 'scroll', 'touchstart'].forEach(e => document.removeEventListener(e, attemptAutoplay));
       }
 
       // Try right away just in case
@@ -1012,8 +1017,8 @@
         iconPause.style.display = '';
         if (trigger) trigger.remove();
       }).catch(() => {
-        if (trigger) trigger.addEventListener('click', attemptAutoplay, { once: true });
-        ['scroll', 'touchstart'].forEach(e => document.addEventListener(e, attemptAutoplay, { once: true }));
+        if (trigger) trigger.addEventListener('click', attemptAutoplay);
+        ['click', 'scroll', 'touchstart', 'touchend'].forEach(e => document.addEventListener(e, attemptAutoplay));
       });
 
       // Smooth volume fade function
