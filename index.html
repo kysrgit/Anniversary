@@ -805,9 +805,37 @@
 
     /* ─── Video play/pause ─── */
     (function () {
+      // Smooth fade-in volume function for videos
+      function fadeVideoVolume(video, targetVol, durationMs) {
+        if (video._volInterval) clearInterval(video._volInterval);
+        const steps = 20;
+        const stepMs = durationMs / steps;
+        const diff = (targetVol - video.volume) / steps;
+        let step = 0;
+        video._volInterval = setInterval(() => {
+          step++;
+          video.volume = Math.max(0, Math.min(1, video.volume + diff));
+          if (step >= steps) {
+            video.volume = targetVol;
+            clearInterval(video._volInterval);
+            video._volInterval = null;
+          }
+        }, stepMs);
+      }
+
       const obs = new IntersectionObserver(es => es.forEach(e => {
-        if (e.isIntersecting) e.target.play().catch(() => { });
-        else e.target.pause();
+        if (e.isIntersecting) {
+          e.target.volume = 0; // start silent
+          e.target.play().then(() => {
+            fadeVideoVolume(e.target, 1.0, 800); // fade in to full volume
+          }).catch(() => { });
+        } else {
+          e.target.pause();
+          if (e.target._volInterval) {
+            clearInterval(e.target._volInterval);
+            e.target._volInterval = null;
+          }
+        }
       }), { threshold: .3 });
       document.querySelectorAll('video[data-video]').forEach(v => obs.observe(v));
     })();
@@ -991,10 +1019,8 @@
 
       // Auto-play music on first interaction (browsers block autoplay without interaction)
       const trigger = document.getElementById('audio-trigger');
-      let playAttempted = false;
       function attemptAutoplay() {
-        if (!musicPlaying && !playAttempted) {
-          playAttempted = true;
+        if (!musicPlaying) {
           music.play().then(() => {
             musicPlaying = true;
             btn.classList.add('playing');
@@ -1003,8 +1029,7 @@
             if (trigger) trigger.remove();
             ['click', 'scroll', 'touchstart', 'touchend'].forEach(e => document.removeEventListener(e, attemptAutoplay));
           }).catch(() => {
-            // Reset to try again on next interaction
-            playAttempted = false;
+            // Failed to play (e.g., user hasn't interacted enough yet on Chrome Android)
           });
         }
       }
@@ -1044,7 +1069,7 @@
       let activeVideos = 0;
       function onVideoPlay() {
         activeVideos++;
-        if (musicPlaying && activeVideos === 1) fadeVolumeTo(0.15, 1000);
+        if (musicPlaying && activeVideos === 1) fadeVolumeTo(0.05, 1000); // Duck to 5% so video audio is prominent
       }
       function onVideoStop() {
         activeVideos = Math.max(0, activeVideos - 1);
