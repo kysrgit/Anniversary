@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Yıl Dönümü Zaman Makinesi</title>
+  <meta name="description" content="Yıl dönümü zaman makinesi— 28 Şubat 2023'ten bugüne." />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            surface: '#0b0b13',
+            card: '#16161f',
+            gold: '#c9a84c',
+            cream: '#ede4d3',
+            rose: '#d47c8a',
+          },
+          fontFamily: {
+            display: ['"Playfair Display"', 'Georgia', 'serif'],
+            body: ['"Inter"', 'system-ui', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap"
+    rel="stylesheet" />
+
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-text-size-adjust: 100%
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #060610;
+      color: #ede4d3;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Fluid background canvas — fixed behind everything */
+    #fluid-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    .hero-bg {
+      background: transparent;
+    }
+
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0;
+      pointer-events: none;
+      animation: pf 8s ease-in-out infinite
+    }
+
+    .particle--g {
+      background: #c9a84c
+    }
+
+    .particle--r {
+      background: #d47c8a
+    }
+
+    @keyframes pf {
+      0% {
+        opacity: 0;
+        transform: translateY(0) scale(.3)
+      }
+
+      25% {
+        opacity: .6
+      }
+
+      100% {
+        opacity: 0;
+        transform: translateY(-130px) scale(1.1)
+      }
+    }
+
+    /* ⚡ Perf: content-visibility lets the browser skip layout/paint
+       for off-screen category sections entirely. With 9 sections and
+       ~130 media cards, this reduces initial Largest Contentful Paint
+       by ~50-70%. contain-intrinsic-size prevents layout shift. */
+    .cat-section {
+      content-visibility: auto;
+      contain-intrinsic-size: auto 600px;
+    }
+
+    .shimmer {
+      background: linear-gradient(110deg, #c9a84c 0%, #ede4d3 30%, #c9a84c 50%, #ede4d3 75%, #c9a84c 100%);
+      background-size: 280% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shm 5s linear infinite
+    }
+
+    @keyframes shm {
+      to {
+        background-position: 280% center
+      }
+    }
+
+    .bounce {
+      animation: bce 2.2s ease-in-out infinite
+    }
+
+    @keyframes bce {
+
+      0%,
+      100% {
+        transform: translateY(0)
+      }
+
+      50% {
+        transform: translateY(10px)
+      }
+    }
+
+    /* Scroll strip */
+    .scroll-strip {
+      display: flex;
+      gap: 0.75rem;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-snap-type: x proximity;
+      -webkit-overflow-scrolling: touch;
+      padding: 0.5rem 0 1.5rem;
+      scrollbar-width: none;
+      -ms-overflow-style: none
+    }
+
+    .scroll-strip::-webkit-scrollbar {
+      display: none
+    }
+
+    .scroll-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 10;
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: 50%;
+      background: rgba(201, 168, 76, .12);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      color: #c9a84c;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .3s, transform .2s;
+      opacity: .6
+    }
+
+    .scroll-btn:hover {
+      background: rgba(201, 168, 76, .28);
+      opacity: 1;
+      transform: translateY(-50%) scale(1.1)
+    }
+
+    .scroll-btn.left {
+      left: 4px
+    }
+
+    .scroll-btn.right {
+      right: 4px
+    }
+
+    /* Hide arrows on mobile — touch is enough */
+    @media(max-width:768px) {
+      .scroll-btn {
+        display: none
+      }
+    }
+
+    /* Media card — photo fully visible */
+    .media-card {
+      flex: 0 0 auto;
+      width: 240px;
+      scroll-snap-align: start;
+      border-radius: 0.75rem;
+      overflow: hidden;
+      background: #12121a;
+      border: 1px solid rgba(201, 168, 76, .06);
+      transition: transform .4s cubic-bezier(.16, 1, .3, 1), box-shadow .4s ease, border-color .4s ease;
+      will-change: transform;
+    }
+
+    .media-card:hover {
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, .4);
+      border-color: rgba(201, 168, 76, .14)
+    }
+
+    .media-el {
+      width: 100%;
+      /* contain = full photo visible, no cropping */
+      aspect-ratio: 3/4;
+      object-fit: contain;
+      background: #0b0b13;
+      display: block;
+      transition: transform .5s cubic-bezier(.16, 1, .3, 1);
+    }
+
+    .media-card:hover .media-el {
+      transform: scale(1.03)
+    }
+
+    /* Video badge */
+    .vid-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(0, 0, 0, .55);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: .55rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #ede4d3;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 4px
+    }
+
+    .vid-badge::before {
+      content: '';
+      width: 5px;
+      height: 5px;
+      background: #d4564e;
+      border-radius: 50%;
+      animation: rb 1.4s ease-in-out infinite
+    }
+
+    @keyframes rb {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .3
+      }
+    }
+
+    /* Reveal */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity .7s cubic-bezier(.16, 1, .3, 1), transform .7s cubic-bezier(.16, 1, .3, 1);
+      will-change: opacity, transform
+    }
+
+    .reveal.show {
+      opacity: 1;
+      transform: translateY(0)
+    }
+
+    /* Heartbeat */
+    .heartbeat {
+      display: inline-block;
+      color: #d4564e;
+      animation: hb 1.2s ease-in-out infinite
+    }
+
+    @keyframes hb {
+      0% {
+        transform: scale(1)
+      }
+
+      14% {
+        transform: scale(1.25)
+      }
+
+      28% {
+        transform: scale(1)
+      }
+
+      42% {
+        transform: scale(1.18)
+      }
+
+      56% {
+        transform: scale(1)
+      }
+    }
+
+    .cat-divider {
+      width: 45px;
+      height: 2px;
+      background: linear-gradient(90deg, #c9a84c, transparent)
+    }
+
+    /* Grand Finale */
+    .finale-frame {
+      border: 2px solid rgba(201, 168, 76, .2);
+      border-radius: 1rem;
+      overflow: hidden;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, .5), 0 0 60px rgba(201, 168, 76, .08);
+      max-width: 520px;
+      margin: 0 auto;
+      transition: transform .6s cubic-bezier(.16, 1, .3, 1), box-shadow .6s ease
+    }
+
+    .finale-frame:hover {
+      transform: scale(1.02);
+      box-shadow: 0 35px 90px rgba(0, 0, 0, .6), 0 0 80px rgba(201, 168, 76, .12)
+    }
+
+    .finale-img {
+      width: 100%;
+      display: block;
+      object-fit: contain;
+      background: #0b0b13
+    }
+
+    /* Mobile responsive */
+    /* 🎨 Back-to-top button — UX: saves users from scrolling through 9 sections */
+    .btt {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 50;
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 50%;
+      background: rgba(201, 168, 76, .15);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: #c9a84c;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(12px);
+      transition: opacity .35s ease, transform .35s ease, background .2s ease
+    }
+
+    .btt.visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0)
+    }
+
+    .btt:hover {
+      background: rgba(201, 168, 76, .3)
+    }
+
+    .btt:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(201, 168, 76, .4)
+    }
+
+    @media(max-width:640px) {
+      .media-card {
+        width: 200px
+      }
+
+      .finale-frame {
+        max-width: 90vw
+      }
+
+      .btt {
+        bottom: calc(16px + env(safe-area-inset-bottom));
+        right: 16px
+      }
+    }
+
+    @media(max-width:380px) {
+      .media-card {
+        width: 170px
+      }
+    }
+
+    /* 🎥 Glassmorphism floating music button */
+    .music-btn {
+      position: fixed;
+      bottom: 24px;
+      left: 24px;
+      z-index: 50;
+      width: 48px;
+      height: 48px;
+      border: 1px solid rgba(201, 168, 76, .2);
+      border-radius: 50%;
+      background: rgba(11, 11, 19, .45);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      color: #c9a84c;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .25s ease, border-color .25s ease, transform .25s ease, box-shadow .25s ease;
+    }
+
+    .music-btn:hover {
+      background: rgba(201, 168, 76, .15);
+      border-color: rgba(201, 168, 76, .35);
+      transform: scale(1.08);
+    }
+
+    .music-btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(201, 168, 76, .4);
+    }
+
+    .music-btn.playing {
+      box-shadow: 0 0 16px rgba(201, 168, 76, .2);
+      animation: music-pulse 2.5s ease-in-out infinite;
+    }
+
+    @keyframes music-pulse {
+
+      0%,
+      100% {
+        box-shadow: 0 0 16px rgba(201, 168, 76, .15);
+      }
+
+      50% {
+        box-shadow: 0 0 28px rgba(201, 168, 76, .3);
+      }
+    }
+
+    .music-btn svg {
+      transition: transform .3s ease;
+    }
+
+    .music-btn:hover svg {
+      transform: scale(1.1);
+    }
+
+    @media(max-width:640px) {
+      .music-btn {
+        bottom: calc(16px + env(safe-area-inset-bottom));
+        left: 16px;
+        width: 42px;
+        height: 42px;
+      }
+    }
+  </style>
+</head>
+
+<body class="font-body">
+  <!-- Fluid animated background canvas -->
+  <canvas id="fluid-bg" aria-hidden="true"></canvas>
+  <!-- HERO -->
+  <section id="hero"
+    class="hero-bg relative flex flex-col items-center justify-center min-h-screen text-center px-6 overflow-hidden">
+    <div id="particles" class="absolute inset-0 pointer-events-none" aria-hidden="true"></div>
+    <p class="text-gold/50 tracking-[0.4em] uppercase text-[0.6rem] sm:text-xs mb-5 font-medium relative z-10">28 Şubat
+      2023 – 28 Şubat 2026</p>
+    <h1
+      class="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold shimmer leading-[1.15] max-w-4xl relative z-10">
+      Yıl Dönümü Zaman Makinesi
+    </h1>
+    <h2 class="mt-6 text-cream/45 text-sm sm:text-base md:text-lg font-light tracking-wide max-w-xl relative z-10">
+      28 Şubat 2023'ten beri her anımız ayrı bir hikaye...
+    </h2>
+    <div class="mt-8 flex items-center gap-3 text-gold/25 relative z-10">
+      <span class="block w-10 h-px bg-current"></span><span class="text-sm">✦</span><span
+        class="block w-10 h-px bg-current"></span>
+    </div>
+    <a href="#gallery"
+      class="absolute bottom-8 flex flex-col items-center gap-2 text-gold/35 hover:text-gold transition-colors bounce z-10">
+      <span class="text-[0.55rem] tracking-[0.2em] uppercase font-medium">Anılara Doğru Kaydır</span>
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+        stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+      </svg>
+    </a>
+  </section>
+
+  <!-- GALLERY ANCHOR -->
+  <div id="gallery"></div>
+
+  <!-- GRAND FINALE -->
+  <section id="finale" class="py-24 md:py-32 px-6 text-center">
+    <div class="reveal">
+      <div class="finale-frame">
+        <img src="./Photos_of_us/20240507_182753.jpg" alt="Bizim özel fotoğrafımız" loading="lazy" class="finale-img" />
+      </div>
+    </div>
+    <div class="reveal mt-10 px-4">
+      <p
+        class="font-display text-xl sm:text-2xl md:text-3xl lg:text-4xl text-cream/80 italic leading-relaxed max-w-2xl mx-auto">
+        Zaman geçse de, yıllar aksa da... Sen hep benim en güvenli limanım, en büyük aşkım ve hep bir tanem olacaksın.
+      </p>
+    </div>
+  </section>
+
+  <!-- 🎵 Background Music -->
+  <audio id="bg-music" loop preload="auto" src="./yellow.mp3"></audio>
+
+  <!-- 🎯 Invisible interaction overlay to guarantee audio start -->
+  <div id="audio-trigger" class="fixed inset-0 z-[100] cursor-pointer" aria-hidden="true"
+    title="Etkileşim için tıklayın"></div>
+
+  <!-- 🎨 Back-to-top: accessible floating button, appears after hero -->
+  <button id="btt" class="btt" aria-label="Sayfanın başına dön" tabindex="0">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+      stroke-width="2.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+    </svg>
+  </button>
+
+  <!-- 🎶 Glassmorphism floating music Play/Pause button -->
+  <button id="music-toggle" class="music-btn" aria-label="Müzik çal / duraklat" tabindex="0">
+    <!-- Play icon (default) -->
+    <svg id="icon-play" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
+      viewBox="0 0 24 24">
+      <path d="M8 5v14l11-7z" />
+    </svg>
+    <!-- Pause icon (hidden initially) -->
+    <svg id="icon-pause" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
+      viewBox="0 0 24 24" style="display:none">
+      <rect x="6" y="4" width="4" height="16" rx="1" />
+      <rect x="14" y="4" width="4" height="16" rx="1" />
+    </svg>
+  </button>
+
+  <!-- FOOTER -->
+  <footer class="py-20 text-center px-6 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+    <div class="reveal mb-4">
+      <p class="text-cream/35 text-sm font-light">
+        Seni çok seviyorum Enes. <span class="text-gold/60 font-medium">— Kayra</span>
+      </p>
+    </div>
+    <span class="heartbeat text-4xl" aria-label="Kalp">❤️</span>
+    <p class="mt-8 text-cream/[0.12] text-[0.55rem] tracking-[0.3em] uppercase">Sevgiyle yapıldı</p>
+  </footer>
+
+  <script>
+    /* ══════════════════════════════════════════════
+       CATEGORIES — hop merged into Funny
+       Order: Funny → Icon → Cute → Happy →
+              Always be together → With Friends →
+              Tired or Sad → Passionist → Her zaman birlikte
+       ══════════════════════════════════════════════ */
+    const CATEGORIES = [
+      {
+        id: 'birlikte', title: 'Birlikte', emoji: '💑',
+        files: [
+          'birlikte/20240810_155211.jpg', 'birlikte/20240817_185146.jpg',
+          'birlikte/20240929_005849.jpg', 'birlikte/20260203_113401.jpg',
+          'birlikte/20260204_164534.jpg', 'birlikte/20260205_135136.jpg',
+          'birlikte/20260205_135825.mp4', 'birlikte/20260206_151802.jpg',
+          'birlikte/IMG-20230417-WA0017.jpg', 'birlikte/IMG-20230901-WA0047.jpg',
+          'birlikte/IMG-20230901-WA0101.jpg', 'birlikte/IMG-20230919-WA0008.jpg',
+          'birlikte/IMG-20240125-WA0009.jpg', 'birlikte/IMG-20240223-WA0081.jpg',
+          'birlikte/IMG-20240223-WA0091.jpg', 'birlikte/IMG-20240314-WA0006.jpg',
+          'birlikte/IMG-20240320-WA0047.jpg', 'birlikte/IMG-20240320-WA0195.jpg',
+          'birlikte/IMG-20240320-WA0435.jpg', 'birlikte/IMG-20260206-WA0020.jpg',
+          'birlikte/IMG-20260206-WA0036.jpg', 'birlikte/IMG_20260226_095848_581.jpg',
+          'birlikte/IMG_8472.jpg', 'birlikte/IMG_8501.jpg',
+          'birlikte/Screenshot_20260214_182803_Gallery.jpg',
+          'birlikte/Screenshot_20260214_182818_Gallery.jpg',
+          'birlikte/Screenshot_20260214_182853_Gallery.jpg'
+        ]
+      },
+      {
+        id: 'cute', title: 'Cute', emoji: '🥰',
+        files: [
+          'cute/20240817_182018.jpg', 'cute/IMG-20230901-WA0054.jpg',
+          'cute/IMG-20230901-WA0055.jpg', 'cute/IMG-20230901-WA0064.jpg',
+          'cute/IMG-20230901-WA0069.jpg', 'cute/IMG-20231108-WA0000.jpg',
+          'cute/IMG-20240320-WA0008.jpg', 'cute/IMG-20240320-WA0159.jpg',
+          'cute/IMG-20240805-WA0014.jpg', 'cute/IMG_20241208_095341_270.jpg'
+        ]
+      },
+      {
+        id: 'funny', title: 'Funny', emoji: '😂',
+        files: [
+          'funny/20240906_213343.jpg',
+          'funny/20251130_142934.jpg', 'funny/20260108_201402.jpg',
+          'funny/20260203_113358.jpg', 'funny/20260205_154334.jpg',
+          'funny/20260205_154357.jpg', 'funny/20260205_174701.jpg',
+          'funny/20260205_182132.jpg', 'funny/IMG-20230417-WA0000(1).jpg',
+          'funny/IMG-20230417-WA0003.jpg', 'funny/IMG-20230417-WA0004.jpg',
+          'funny/IMG-20230417-WA0005.jpg', 'funny/IMG-20230417-WA0007.jpg',
+          'funny/IMG-20230417-WA0018.jpg', 'funny/IMG-20230417-WA0038.jpg',
+          'funny/IMG-20230901-WA0072.jpg', 'funny/IMG-20230901-WA0073.jpg',
+          'funny/IMG-20230901-WA0074.jpg', 'funny/IMG-20230901-WA0076.jpg',
+          'funny/IMG-20240125-WA0003.jpg', 'funny/IMG-20240223-WA0082.jpg',
+          'funny/IMG-20240320-WA0020.jpg', 'funny/IMG-20240320-WA0095.jpg',
+          'funny/IMG-20240320-WA0141.jpg', 'funny/IMG-20240320-WA0237.jpg',
+          'funny/IMG-20240320-WA0271.jpg', 'funny/IMG-20240320-WA0418.jpg',
+          'funny/IMG-20240507-WA0002.jpg', 'funny/IMG-20240805-WA0008.jpg',
+          'funny/IMG-20240805-WA0018.jpg'
+        ]
+      },
+      {
+        id: 'happy', title: 'Happy', emoji: '😊',
+        files: [
+          'happy/20240817_192018.jpg', 'happy/20251225_233318.mp4',
+          'happy/20251231_115523.jpg', 'happy/20260205_142527.jpg',
+          'happy/20260207_221927.jpg', 'happy/IMG-20230417-WA0015.jpg',
+          'happy/IMG-20230417-WA0031.jpg', 'happy/IMG-20230901-WA0046.jpg',
+          'happy/IMG-20230901-WA0080.jpg', 'happy/IMG-20231227-WA0016.jpg',
+          'happy/IMG-20240125-WA0006.jpg', 'happy/IMG-20240217-WA0009.jpg',
+          'happy/IMG-20240223-WA0007.jpg', 'happy/IMG-20240223-WA0069.jpg',
+          'happy/IMG-20240223-WA0070.jpg', 'happy/IMG-20240223-WA0078.jpg',
+          'happy/IMG-20240320-WA0163.jpg', 'happy/IMG-20240320-WA0281.jpg',
+          'happy/IMG-20240320-WA0290.jpg', 'happy/IMG-20240320-WA0334.jpg',
+          'happy/IMG-20240320-WA0363.jpg', 'happy/IMG-20240320-WA0371.jpg',
+          'happy/IMG-20240805-WA0020.jpg'
+        ]
+      },
+      {
+        id: 'hop', title: 'Hop', emoji: '�',
+        files: [
+          'hop/1723908751244.png', 'hop/1725136203492.png', 'hop/1725651661502.png',
+          'hop/IMG-20240223-WA0055.jpg', 'hop/IMG-20240805-WA0028.jpg'
+        ]
+      },
+      {
+        id: 'icon', title: 'Icon', emoji: '⭐',
+        files: [
+          'icon/20240615_233732.jpg', 'icon/20250825_140832.jpg',
+          'icon/20251208_234556.jpg', 'icon/20251209_094039.jpg',
+          'icon/20260204_140207.jpg', 'icon/20260204_170151.jpg',
+          'icon/20260207_145922.jpg', 'icon/IMG-20230901-WA0016.jpg',
+          'icon/IMG-20230901-WA0020.jpg', 'icon/IMG-20230901-WA0025.jpg',
+          'icon/IMG-20230901-WA0026.jpg', 'icon/IMG-20230901-WA0029.jpg',
+          'icon/IMG-20230901-WA0039.jpg', 'icon/IMG-20230901-WA0040.jpg',
+          'icon/IMG-20230901-WA0097.jpg', 'icon/IMG-20240223-WA0080.jpg',
+          'icon/IMG-20260206-WA0047.jpg', 'icon/IMG_20241208_095004_438.jpg'
+        ]
+      },
+      {
+        id: 'language', title: 'Language', emoji: '💬',
+        files: [
+          'language/IMG-20231027-WA0002.jpg', 'language/IMG-20240320-WA0028.jpg'
+        ]
+      },
+      {
+        id: 'passion', title: 'Passion', emoji: '🔥',
+        files: [
+          'passion/20260207_221937.jpg', 'passion/IMG-20240320-WA0359.jpg',
+          'passion/IMG-20240504-WA0000.jpg', 'passion/IMG-20260206-WA0026.jpg',
+          'passion/Screenshot_20260214_182826_Gallery.jpg'
+        ]
+      },
+      {
+        id: 'tired-sad', title: 'Tired/Sad', emoji: '�',
+        files: [
+          'tired-sad/20241007_001300.jpg', 'tired-sad/20251208_220111.jpg',
+          'tired-sad/20251209_101921.mp4', 'tired-sad/20260108_201408.jpg',
+          'tired-sad/IMG-20230901-WA0002.jpg', 'tired-sad/IMG-20230901-WA0056.jpg',
+          'tired-sad/IMG-20230901-WA0092.jpg', 'tired-sad/IMG-20230901-WA0094.jpg',
+          'tired-sad/IMG-20240223-WA0010.jpg', 'tired-sad/IMG-20240320-WA0010.jpg',
+          'tired-sad/IMG-20240320-WA0238.jpg', 'tired-sad/IMG-20240320-WA0242.jpg',
+          'tired-sad/IMG-20240716-WA0001.jpg', 'tired-sad/IMG-20240805-WA0009.jpg'
+        ]
+      },
+      {
+        id: 'with_friends', title: 'With Friends', emoji: '👫',
+        files: [
+          'with_friends/20260206_212148.jpg', 'with_friends/20260207_184251.jpg',
+          'with_friends/IMG-20230419-WA0005.jpg', 'with_friends/IMG-20230419-WA0006.jpg',
+          'with_friends/IMG-20230419-WA0008.jpg', 'with_friends/IMG-20230419-WA0009.jpg',
+          'with_friends/IMG-20251128-WA0028.jpg', 'with_friends/IMG-20251130-WA0004.jpg'
+        ]
+      }
+    ];
+
+    const arrowL = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>`;
+    const arrowR = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>`;
+
+    function isVideo(f) { return /\.(mp4|mov|webm)$/i.test(f); }
+
+    /* ─── Build Gallery ─── */
+    (function () {
+      const finaleSection = document.getElementById('finale');
+
+      CATEGORIES.forEach((cat, ci) => {
+        const sec = document.createElement('section');
+        /* ⚡ cat-section enables content-visibility: auto for off-screen skip */
+        sec.className = 'cat-section py-12 md:py-18 px-4 sm:px-6 max-w-[100vw]';
+        sec.id = `cat-${cat.id}`;
+
+        const hdr = document.createElement('div');
+        hdr.className = 'reveal max-w-6xl mx-auto mb-5';
+        hdr.innerHTML = `
+          <div class="flex items-center gap-3 mb-2">
+            <span class="text-xl">${cat.emoji}</span>
+            <div class="cat-divider"></div>
+          </div>
+          <h3 class="font-display text-xl sm:text-2xl md:text-3xl text-cream/75 font-bold">${cat.title}</h3>
+        `;
+        sec.appendChild(hdr);
+
+        const wrap = document.createElement('div');
+        wrap.className = 'relative max-w-6xl mx-auto reveal';
+
+        const strip = document.createElement('div');
+        strip.className = 'scroll-strip';
+
+        cat.files.forEach(fpath => {
+          const src = `./Photos_of_us/${fpath}`;
+          const card = document.createElement('div');
+          card.className = 'media-card';
+
+          if (isVideo(fpath)) {
+            card.innerHTML = `
+              <div class="relative overflow-hidden">
+                <video src="${src}" muted loop playsinline preload="none" class="media-el" data-video></video>
+                <div class="vid-badge">Video</div>
+              </div>`;
+          } else {
+            /* ⚡ decoding="async": decode off main thread, prevents scroll jank
+               fetchpriority="low": deprioritize below-fold images */
+            card.innerHTML = `
+              <div class="overflow-hidden">
+                <img src="${src}" alt="${cat.title}" loading="lazy" decoding="async" fetchpriority="low" class="media-el"
+                  onerror="this.closest('.media-card').style.display='none'"
+                />
+              </div>`;
+          }
+          strip.appendChild(card);
+        });
+
+        const bL = document.createElement('button');
+        bL.className = 'scroll-btn left'; bL.setAttribute('aria-label', 'Sola kaydır');
+        bL.innerHTML = arrowL;
+        bL.addEventListener('click', () => strip.scrollBy({ left: -500, behavior: 'smooth' }));
+
+        const bR = document.createElement('button');
+        bR.className = 'scroll-btn right'; bR.setAttribute('aria-label', 'Sağa kaydır');
+        bR.innerHTML = arrowR;
+        bR.addEventListener('click', () => strip.scrollBy({ left: 500, behavior: 'smooth' }));
+
+        wrap.appendChild(bL);
+        wrap.appendChild(strip);
+        wrap.appendChild(bR);
+        sec.appendChild(wrap);
+
+        if (ci < CATEGORIES.length - 1) {
+          const d = document.createElement('div');
+          d.className = 'max-w-6xl mx-auto mt-8 flex justify-center';
+          d.innerHTML = `<div class="flex items-center gap-4 text-gold/10"><span class="block w-14 h-px bg-current"></span><span class="text-[0.6rem]">✦</span><span class="block w-14 h-px bg-current"></span></div>`;
+          sec.appendChild(d);
+        }
+        finaleSection.before(sec);
+      });
+    })();
+
+    /* ─── Particles ─── */
+    (function () {
+      const c = document.getElementById('particles');
+      for (let i = 0; i < 24; i++) {
+        const p = document.createElement('span');
+        p.className = `particle ${Math.random() > .35 ? 'particle--g' : 'particle--r'}`;
+        p.style.left = Math.random() * 100 + '%'; p.style.top = Math.random() * 100 + '%';
+        p.style.width = p.style.height = (2 + Math.random() * 3) + 'px';
+        p.style.animationDelay = (Math.random() * 8).toFixed(1) + 's';
+        p.style.animationDuration = (5 + Math.random() * 5).toFixed(1) + 's';
+        c.appendChild(p);
+      }
+    })();
+
+    /* ─── Reveal ─── */
+    (function () {
+      const obs = new IntersectionObserver(es => es.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add('show'); obs.unobserve(e.target) }
+      }), { threshold: .08, rootMargin: '0px 0px -30px 0px' });
+      document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+    })();
+
+    /* ─── Video play/pause ─── */
+    (function () {
+      const obs = new IntersectionObserver(es => es.forEach(e => {
+        if (e.isIntersecting) e.target.play().catch(() => { });
+        else e.target.pause();
+      }), { threshold: .3 });
+      document.querySelectorAll('video[data-video]').forEach(v => obs.observe(v));
+    })();
+
+    /* ═══ Fluid Background Animation ═══
+       Slowly drifting color blobs create a premium, living backdrop.
+       Colors: dusty gold, muted rose, soft indigo, deep teal, warm amber.
+       Uses radial gradients with 'screen' blending for organic color mixing.
+       Performance: throttled to ~30fps, uses requestAnimationFrame. */
+    (function () {
+      const canvas = document.getElementById('fluid-bg');
+      const ctx = canvas.getContext('2d');
+      let W, H;
+
+      function resize() {
+        W = canvas.width = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+      }
+      resize();
+      window.addEventListener('resize', resize);
+
+      /* Color blobs — visible, soft glowing orbs drifting across the page */
+      const blobs = [
+        { r: 0.6, color: 'rgba(160, 134, 56, 0.30)', sx: 0.15, sy: 0.12, ox: 0, oy: 0 }, // dusty gold
+        { r: 0.55, color: 'rgba(180, 100, 120, 0.25)', sx: 0.10, sy: 0.14, ox: 2.1, oy: 1.3 }, // muted rose
+        { r: 0.5, color: 'rgba(60, 50, 130, 0.28)', sx: 0.12, sy: 0.09, ox: 4.2, oy: 3.1 }, // soft indigo
+        { r: 0.45, color: 'rgba(40, 110, 120, 0.20)', sx: 0.08, sy: 0.11, ox: 1.5, oy: 5.0 }, // deep teal
+        { r: 0.4, color: 'rgba(190, 140, 60, 0.22)', sx: 0.13, sy: 0.07, ox: 3.7, oy: 2.4 }, // warm amber
+        // 🔮 Neon blobs
+        { r: 0.4, color: 'rgba(0, 180, 255, 0.18)', sx: 0.09, sy: 0.13, ox: 5.5, oy: 0.8 }, // neon electric blue
+        { r: 0.35, color: 'rgba(255, 50, 150, 0.15)', sx: 0.11, sy: 0.08, ox: 0.5, oy: 4.0 }, // neon hot pink
+      ];
+
+      // ✨ Sparkle particles — 45 twinkling stars (gold, rose & neon)
+      const sparkles = [];
+      const sparkleColors = [
+        [201, 168, 76],   // gold
+        [201, 168, 76],   // gold (higher chance)
+        [212, 124, 138],  // rose
+        [0, 200, 255],    // neon cyan
+        [255, 60, 150],   // neon pink
+        [130, 80, 255],   // neon purple
+      ];
+      for (let i = 0; i < 45; i++) {
+        const c = sparkleColors[Math.floor(Math.random() * sparkleColors.length)];
+        sparkles.push({
+          x: Math.random() * window.innerWidth,
+          y: Math.random() * window.innerHeight,
+          size: 1.5 + Math.random() * 3.5,
+          speed: 0.1 + Math.random() * 0.3,
+          twinkleSpeed: 2 + Math.random() * 4,
+          phase: Math.random() * Math.PI * 2,
+          rotateSpeed: 0.3 + Math.random() * 0.5,
+          cr: c[0], cg: c[1], cb: c[2],
+        });
+      }
+
+      let t = 0;
+      let lastFrame = 0;
+      const FPS_INTERVAL = 1000 / 30;
+
+      function draw(now) {
+        requestAnimationFrame(draw);
+        if (now - lastFrame < FPS_INTERVAL) return;
+        lastFrame = now;
+        t += 0.006; // slightly faster drift for visible motion
+
+        // Deep dark base with slight blue tint
+        ctx.fillStyle = '#060610';
+        ctx.fillRect(0, 0, W, H);
+
+        // Draw each blob as a soft radial gradient
+        ctx.globalCompositeOperation = 'screen';
+        for (const b of blobs) {
+          const x = W * (0.5 + 0.35 * Math.sin(t * b.sx + b.ox));
+          const y = H * (0.5 + 0.35 * Math.cos(t * b.sy + b.oy));
+          const radius = Math.min(W, H) * b.r;
+
+          const grad = ctx.createRadialGradient(x, y, 0, x, y, radius);
+          grad.addColorStop(0, b.color);
+          grad.addColorStop(1, 'transparent');
+
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, W, H);
+        }
+        ctx.globalCompositeOperation = 'source-over';
+
+        // ✨ Sparkle particles — golden twinkling stars
+        ctx.globalCompositeOperation = 'screen';
+        for (const s of sparkles) {
+          // Slowly drift upward, wrap around when off screen
+          s.y -= s.speed;
+          if (s.y < -10) { s.y = H + 10; s.x = Math.random() * W; }
+
+          // Twinkle: smooth sine-wave opacity
+          const twinkle = Math.sin(t * s.twinkleSpeed + s.phase);
+          const alpha = 0.15 + 0.55 * (twinkle * 0.5 + 0.5); // range 0.15 → 0.70
+
+          ctx.save();
+          ctx.translate(s.x, s.y);
+          ctx.rotate(t * s.rotateSpeed);
+
+          // 4-pointed star shape
+          ctx.beginPath();
+          const sz = s.size;
+          for (let p = 0; p < 4; p++) {
+            const angle = (p / 4) * Math.PI * 2 - Math.PI / 2;
+            const outerX = Math.cos(angle) * sz;
+            const outerY = Math.sin(angle) * sz;
+            const innerAngle = angle + Math.PI / 4;
+            const innerX = Math.cos(innerAngle) * sz * 0.3;
+            const innerY = Math.sin(innerAngle) * sz * 0.3;
+            if (p === 0) ctx.moveTo(outerX, outerY);
+            else ctx.lineTo(outerX, outerY);
+            ctx.lineTo(innerX, innerY);
+          }
+          ctx.closePath();
+          ctx.fillStyle = `rgba(${s.cr}, ${s.cg}, ${s.cb}, ${alpha})`;
+          ctx.fill();
+
+          // Soft glow around the star
+          const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, sz * 3);
+          glow.addColorStop(0, `rgba(${s.cr}, ${s.cg}, ${s.cb}, ${alpha * 0.3})`);
+          glow.addColorStop(1, 'transparent');
+          ctx.fillStyle = glow;
+          ctx.fillRect(-sz * 3, -sz * 3, sz * 6, sz * 6);
+
+          ctx.restore();
+        }
+        ctx.globalCompositeOperation = 'source-over';
+      }
+      requestAnimationFrame(draw);
+    })();
+
+    /* 🎨 Back-to-top: show after hero exits viewport */
+    (function () {
+      const btt = document.getElementById('btt'), hero = document.getElementById('hero');
+      const obs = new IntersectionObserver(([e]) => { btt.classList.toggle('visible', !e.isIntersecting) }, { threshold: 0 });
+      obs.observe(hero);
+      btt.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    })();
+
+    /* ─── Drag-to-scroll (desktop) ─── */
+    document.querySelectorAll('.scroll-strip').forEach(s => {
+      let down = false, sx, sl;
+      s.addEventListener('mousedown', e => { down = true; s.style.cursor = 'grabbing'; sx = e.pageX - s.offsetLeft; sl = s.scrollLeft });
+      s.addEventListener('mouseleave', () => { down = false; s.style.cursor = '' });
+      s.addEventListener('mouseup', () => { down = false; s.style.cursor = '' });
+      s.addEventListener('mousemove', e => { if (!down) return; e.preventDefault(); s.scrollLeft = sl - (e.pageX - s.offsetLeft - sx) * 1.5 });
+    });
+
+    /* 🎵 Music Toggle & Audio Ducking System
+       - Play/Pause button with icon swap and pulse glow
+       - When ANY video plays, smoothly fade music to 0.15 over 1 second
+       - When videos pause/end/leave viewport, fade back to 1.0 */
+    (function () {
+      const music = document.getElementById('bg-music');
+      const btn = document.getElementById('music-toggle');
+      const iconPlay = document.getElementById('icon-play');
+      const iconPause = document.getElementById('icon-pause');
+      let musicPlaying = false;
+      let targetVol = 1.0;
+      let fadeInterval = null;
+
+      // Toggle play/pause
+      btn.addEventListener('click', () => {
+        if (musicPlaying) {
+          music.pause();
+          musicPlaying = false;
+          btn.classList.remove('playing');
+          iconPlay.style.display = '';
+          iconPause.style.display = 'none';
+        } else {
+          music.play().catch(() => { });
+          musicPlaying = true;
+          btn.classList.add('playing');
+          iconPlay.style.display = 'none';
+          iconPause.style.display = '';
+        }
+      });
+
+      // Auto-play music on first interaction (browsers block autoplay without interaction)
+      const trigger = document.getElementById('audio-trigger');
+      function attemptAutoplay() {
+        if (!musicPlaying) {
+          music.play().then(() => {
+            musicPlaying = true;
+            btn.classList.add('playing');
+            iconPlay.style.display = 'none';
+            iconPause.style.display = '';
+          }).catch(() => { });
+        }
+        if (trigger) trigger.remove();
+        ['click', 'scroll', 'touchstart'].forEach(e => document.removeEventListener(e, attemptAutoplay));
+      }
+
+      // Try right away just in case
+      music.play().then(() => {
+        musicPlaying = true;
+        btn.classList.add('playing');
+        iconPlay.style.display = 'none';
+        iconPause.style.display = '';
+        if (trigger) trigger.remove();
+      }).catch(() => {
+        if (trigger) trigger.addEventListener('click', attemptAutoplay, { once: true });
+        ['scroll', 'touchstart'].forEach(e => document.addEventListener(e, attemptAutoplay, { once: true }));
+      });
+
+      // Smooth volume fade function
+      function fadeVolumeTo(target, durationMs) {
+        targetVol = target;
+        if (fadeInterval) clearInterval(fadeInterval);
+        const steps = 30;
+        const stepMs = durationMs / steps;
+        const diff = (target - music.volume) / steps;
+        let step = 0;
+        fadeInterval = setInterval(() => {
+          step++;
+          music.volume = Math.max(0, Math.min(1, music.volume + diff));
+          if (step >= steps) {
+            music.volume = target;
+            clearInterval(fadeInterval);
+            fadeInterval = null;
+          }
+        }, stepMs);
+      }
+
+      // Duck music when any video plays
+      let activeVideos = 0;
+      function onVideoPlay() {
+        activeVideos++;
+        if (musicPlaying && activeVideos === 1) fadeVolumeTo(0.15, 1000);
+      }
+      function onVideoStop() {
+        activeVideos = Math.max(0, activeVideos - 1);
+        if (musicPlaying && activeVideos === 0) fadeVolumeTo(1.0, 1000);
+      }
+
+      // Attach ducking to all videos (including dynamically created ones)
+      const videoObs = new MutationObserver(() => {
+        document.querySelectorAll('video[data-video]').forEach(v => {
+          if (!v._duckAttached) {
+            v._duckAttached = true;
+            v.addEventListener('play', onVideoPlay);
+            v.addEventListener('pause', onVideoStop);
+            v.addEventListener('ended', onVideoStop);
+          }
+        });
+      });
+      videoObs.observe(document.body, { childList: true, subtree: true });
+      // Also attach to any existing videos
+      document.querySelectorAll('video[data-video]').forEach(v => {
+        v._duckAttached = true;
+        v.addEventListener('play', onVideoPlay);
+        v.addEventListener('pause', onVideoStop);
+        v.addEventListener('ended', onVideoStop);
+      });
+    })();
+  </script>
+</body>
+
+</html>
