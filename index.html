@@ -972,20 +972,27 @@
       let targetVol = 1.0;
       let fadeInterval = null;
 
+      function setMusicState(isPlaying) {
+        musicPlaying = isPlaying;
+        if (isPlaying) {
+          btn.classList.add('playing');
+          iconPlay.style.display = 'none';
+          iconPause.style.display = '';
+        } else {
+          btn.classList.remove('playing');
+          iconPlay.style.display = '';
+          iconPause.style.display = 'none';
+        }
+      }
+
       // Toggle play/pause
       btn.addEventListener('click', () => {
         if (musicPlaying) {
           music.pause();
-          musicPlaying = false;
-          btn.classList.remove('playing');
-          iconPlay.style.display = '';
-          iconPause.style.display = 'none';
+          setMusicState(false);
         } else {
           music.play().catch(() => { });
-          musicPlaying = true;
-          btn.classList.add('playing');
-          iconPlay.style.display = 'none';
-          iconPause.style.display = '';
+          setMusicState(true);
         }
       });
 
@@ -994,10 +1001,7 @@
       function attemptAutoplay() {
         if (!musicPlaying) {
           music.play().then(() => {
-            musicPlaying = true;
-            btn.classList.add('playing');
-            iconPlay.style.display = 'none';
-            iconPause.style.display = '';
+            setMusicState(true);
           }).catch(() => { });
         }
         if (trigger) trigger.remove();
@@ -1006,10 +1010,7 @@
 
       // Try right away just in case
       music.play().then(() => {
-        musicPlaying = true;
-        btn.classList.add('playing');
-        iconPlay.style.display = 'none';
-        iconPause.style.display = '';
+        setMusicState(true);
         if (trigger) trigger.remove();
       }).catch(() => {
         if (trigger) trigger.addEventListener('click', attemptAutoplay, { once: true });
