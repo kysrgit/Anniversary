@@ -1047,14 +1047,30 @@
       }
 
       // Attach ducking to all videos (including dynamically created ones)
-      const videoObs = new MutationObserver(() => {
-        document.querySelectorAll('video[data-video]').forEach(v => {
-          if (!v._duckAttached) {
-            v._duckAttached = true;
-            v.addEventListener('play', onVideoPlay);
-            v.addEventListener('pause', onVideoStop);
-            v.addEventListener('ended', onVideoStop);
-          }
+      const videoObs = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              // Check if the node itself is a video
+              if (node.matches('video[data-video]')) {
+                if (!node._duckAttached) {
+                  node._duckAttached = true;
+                  node.addEventListener('play', onVideoPlay);
+                  node.addEventListener('pause', onVideoStop);
+                  node.addEventListener('ended', onVideoStop);
+                }
+              }
+              // Check if any of its descendants are videos
+              node.querySelectorAll('video[data-video]').forEach((v) => {
+                if (!v._duckAttached) {
+                  v._duckAttached = true;
+                  v.addEventListener('play', onVideoPlay);
+                  v.addEventListener('pause', onVideoStop);
+                  v.addEventListener('ended', onVideoStop);
+                }
+              });
+            }
+          });
         });
       });
       videoObs.observe(document.body, { childList: true, subtree: true });
